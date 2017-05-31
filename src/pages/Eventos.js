@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 
-import { Button, Table } from 'react-bootstrap';
+import { Button, Table, Modal, FormGroup, ControlLabel, FormControl } from 'react-bootstrap';
 
 class Eventos extends Component {
 
     constructor(props) {
         super(props);
         this.state = {
+            modalState: false,
             eventos: []
         }
     }
@@ -18,6 +19,19 @@ class Eventos extends Component {
 
     componentWillMount() {
         this.pegarEventos();
+    }
+
+    open() {
+        this.setState({ modalState: true })
+    }
+
+    close() {
+        this.setState({ modalState: false })
+    }
+
+    enviarEvento() {
+        this.close();
+        console.log(this.refs.txtTitulo);
     }
 
     renderTableRows() {
@@ -37,7 +51,7 @@ class Eventos extends Component {
     render() {
         return (
             <div>
-                <Button bsStyle="success">Criar Evento</Button>
+                <Button bsStyle="success" onClick={ this.open.bind(this) }>Criar Evento</Button>
                 <hr />
                 <Table striped bordered hover responsive>
                     <thead>
@@ -52,6 +66,27 @@ class Eventos extends Component {
                         { this.renderTableRows() }
                     </tbody>
                 </Table>
+
+                <Modal show={ this.state.modalState } onHide={ this.close.bind(this) }>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Novo Evento</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div>
+                            <FormGroup>
+                                <ControlLabel>Título</ControlLabel>
+                                <FormControl inputRef={ref => this.ref = ref} ref="txtTitulo" type="text" placeholder="Digite o título do evento" />
+                            </FormGroup>
+                            <FormGroup>
+                                <ControlLabel>Data</ControlLabel>
+                                <FormControl ref="txtData" type="text" placeholder="Digite a data do evento" />
+                            </FormGroup>
+                        </div>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button bsStyle="success" onClick={ this.enviarEvento.bind(this) }>Enviar</Button>
+                    </Modal.Footer>
+                </Modal>
             </div>
         )
     }
