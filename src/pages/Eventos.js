@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 
-import { Button, Table, Modal, FormGroup, ControlLabel, FormControl } from 'react-bootstrap';
+import { Button, Table, Modal } from 'react-bootstrap';
+
+import { API_URL, DATE_REGEXP } from '../consts';
 
 class Eventos extends Component {
 
@@ -8,14 +10,13 @@ class Eventos extends Component {
         super(props);
         this.state = {
             modalState: false,
-            eventos: []
+            dataError: false,
+            tituloError: false,
+            values: {
+                eventos: []
+            }
         }
     }
-
-    pegarEventos = () => 
-        fetch("http://hdf-api.herokuapp.com/api/eventos")
-            .then(response => response.json())
-            .then(json => this.setState({ eventos: json }));
 
     componentWillMount() {
         this.pegarEventos();
@@ -26,23 +27,71 @@ class Eventos extends Component {
     }
 
     close() {
-        this.setState({ modalState: false })
+        this.setState({ tituloError: false, dataError: false, modalState: false })
     }
 
+    pegarEventos = () => 
+        fetch(API_URL.concat('eventos'))
+            .then(response => response.json())
+            .then(json => this.setState({ values: json }));
+
     enviarEvento() {
-        this.close();
-        console.log(this.refs.txtTitulo);
+        this.setState({ tituloError: false, dataError: false });
+
+        const tituloValido = this.refs.txtTitulo.value.length > 4;
+        const dataValida = DATE_REGEXP.test(this.refs.txtData.value); 
+
+        if (!tituloValido) {
+            this.setState({ tituloError: true });
+        }
+        if (!dataValida) {
+            this.setState({ dataError: true });
+        }
+
+        if (tituloValido && dataValida) {
+            this.setState({ tituloError: false, dataError: false });
+
+            const body = {
+                titulo: this.refs.txtTitulo.value,
+                data: this.refs.txtData.value
+            }
+            
+            const config = {
+                method: 'POST',
+                body: JSON.stringify(body),
+                mode: 'cors',
+                headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            }
+
+            console.log(body);
+
+            fetch(API_URL.concat('eventos'), config)
+                .then(json => this.pegarEventos());
+
+            this.close();
+        }
+    }
+
+    removerEvento(id) {
+        const config = {
+            method: 'DELETE',
+            mode: 'cors'
+        }
+
+        fetch(API_URL.concat('eventos/' + id), config)
+            .then(response => this.pegarEventos());
     }
 
     renderTableRows() {
-        return this.state.eventos.map((content, index) => (
+        return this.state.values.eventos.map((content, index) => (
             <tr key={ index }>
                 <td>{ content.id }</td>
                 <td>{ content.titulo }</td>
                 <td>{ content.data }</td>
                 <td>
-                    <Button bsStyle="warning" bsSize="xsmall">Editar</Button>
-                    <Button bsStyle="danger" bsSize="xsmall">Excluir</Button>
+                    <Button onClick={ () => this.removerEvento(content.id) } bsStyle="danger" bsSize="xsmall">Excluir</Button>
                 </td>
             </tr>
         ))
@@ -51,12 +100,14 @@ class Eventos extends Component {
     render() {
         return (
             <div>
-                <Button bsStyle="success" onClick={ this.open.bind(this) }>Criar Evento</Button>
-                <hr />
-                <Table striped bordered hover responsive>
+                <p>
+                    <Button bsStyle="success" onClick={ this.open.bind(this) }>Criar Evento</Button>
+                </p>
+                
+                <Table striped hover responsive>
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th>ID</th>
                             <th>Título</th>
                             <th>Data</th>
                             <th></th>
@@ -72,15 +123,21 @@ class Eventos extends Component {
                         <Modal.Title>Novo Evento</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
+                        {this.state.tituloError && <div className="alert alert-danger">
+                            <b>Atenção</b>, insira um título válido!
+                        </div>}
+                        {this.state.dataError && <div className="alert alert-danger">
+                            <b>Atenção</b>, insira uma data válida!
+                        </div>}
                         <div>
-                            <FormGroup>
-                                <ControlLabel>Título</ControlLabel>
-                                <FormControl inputRef={ref => this.ref = ref} ref="txtTitulo" type="text" placeholder="Digite o título do evento" />
-                            </FormGroup>
-                            <FormGroup>
-                                <ControlLabel>Data</ControlLabel>
-                                <FormControl ref="txtData" type="text" placeholder="Digite a data do evento" />
-                            </FormGroup>
+                            <div className="form-group">
+                                <label className="control-label">Título</label>
+                                <input className="form-control" ref="txtTitulo" type="text" placeholder="ex. Noite do Bingo"/>
+                            </div>
+                            <div className="form-group">
+                                <label className="control-label">Data</label>
+                                <input className="form-control" ref="txtData" type="text" placeholder="ex. 20/12/2017"/>
+                            </div>
                         </div>
                     </Modal.Body>
                     <Modal.Footer>
